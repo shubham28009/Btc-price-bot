@@ -5,7 +5,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 BOT_TOKEN = "8586949573:AAHj1mww960J_3r54nuvXINCBzR0WDV8CGI"
 CHANNEL_USERNAME = "@the_deal_chamber"
-
 bot = Bot(token=BOT_TOKEN)
 
 LAST_PRICE = None
