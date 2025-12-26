@@ -3,8 +3,9 @@ import asyncio
 from telegram import Bot
 from PIL import Image, ImageDraw, ImageFont
 
-BOT_TOKEN = "8586949573:AAHj1mww960J_3r54nuvXINCBzR0WDV8CGI"
-CHANNEL_USERNAME = "@the_deal_chamber"
+import os
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_USERNAME = "@THE_DEAL_CHAMBER"
 bot = Bot(token=BOT_TOKEN)
 
 LAST_PRICE = None
