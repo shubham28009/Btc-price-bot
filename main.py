@@ -32,9 +32,9 @@ def create_image(price, percent):
         img = Image.new("RGB", (1080, 1080), "#F7931A")
         draw = ImageDraw.Draw(img)
 
-        font_big = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 160)
-        font_small = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 90)
-        font_brand = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 60)
+        font_big = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+        font_brand = ImageFont.load_default()
 
         price_text = f"${int(price):,}"
         percent_text = f"{percent:+.2f}%"
