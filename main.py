@@ -32,25 +32,31 @@ def create_image(price, percent):
     img = Image.new("RGB", (1080, 1080), "#F7931A")
     draw = ImageDraw.Draw(img)
 
-    font_big = ImageFont.load_default()
-    font_small = ImageFont.load_default()
-    font_brand = ImageFont.load_default()
+    font_big = ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120
+    )
+    font_small = ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60
+    )
+    font_brand = ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40
+    )
 
     price_text = f"${int(price):,}"
     percent_text = f"{percent:+.2f}%"
-    brand = "@the_deal_chamber"
+    brand = "@thedealchamber"
 
-    draw.text((540, 350), price_text, font=font_big, fill="black", anchor="mm")
+    draw.text((540, 380), price_text, fill="black", font=font_big, anchor="mm")
     draw.text(
-        (540, 550),
+        (540, 540),
         percent_text,
-        font=font_small,
         fill="green" if percent >= 0 else "red",
+        font=font_small,
         anchor="mm"
     )
-    draw.text((540, 900), brand, font=font_brand, fill="black", anchor="mm")
+    draw.text((540, 920), brand, fill="black", font=font_brand, anchor="mm")
 
-    img.save("btc.png")  # ✅ SAME INDENT LEVEL  
+    img.save("btc.png")  
 
 async def send_update(price, percent):
     create_image(price, percent)
