@@ -1,52 +1,62 @@
 import requests
 import asyncio
+import os
 from telegram import Bot
 from PIL import Image, ImageDraw, ImageFont
 
-import os
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_USERNAME = "@THE_DEAL_CHAMBER"
 bot = Bot(token=BOT_TOKEN)
 
 LAST_PRICE = None
-LAST_MILESTONE = None  # Track last milestone reached (88500, 89000, etc.)
+LAST_MILESTONE = None
+
 
 def get_btc_price():
-    # Using CoinGecko API (no IP restrictions, free tier available)
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
-    response = requests.get(url)
+    url = (
+        "https://api.coingecko.com/api/v3/simple/price"
+        "?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
+    )
+    response = requests.get(url, timeout=10)
     data = response.json()
-    
+
     if "bitcoin" not in data:
         raise Exception("Invalid response from CoinGecko API")
-    
+
     bitcoin_data = data["bitcoin"]
     price = float(bitcoin_data.get("usd", 0))
     change_percent = float(bitcoin_data.get("usd_24h_change", 0))
-    
+
     if price == 0:
         raise Exception("Invalid price data from API")
-    
+
     return price, change_percent
+
+
+# ✅ SAFE FONT LOADER (NO CRASH EVER)
+def get_font(size):
+    try:
+        return ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            size
+        )
+    except Exception:
+        return ImageFont.load_default()
+
+
 def create_image(price, percent):
     img = Image.new("RGB", (1080, 1080), "#F7931A")
     draw = ImageDraw.Draw(img)
 
-    font_big = ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120
-    )
-    font_small = ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60
-    )
-    font_brand = ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40
-    )
+    font_big = get_font(140)
+    font_small = get_font(70)
+    font_brand = get_font(40)
 
     price_text = f"${int(price):,}"
     percent_text = f"{percent:+.2f}%"
     brand = "@thedealchamber"
 
-    draw.text((540, 380), price_text, fill="black", font=font_big, anchor="mm")
+    draw.text((540, 360), price_text, fill="black", font=font_big, anchor="mm")
     draw.text(
         (540, 540),
         percent_text,
@@ -54,17 +64,20 @@ def create_image(price, percent):
         font=font_small,
         anchor="mm"
     )
-    draw.text((540, 920), brand, fill="black", font=font_brand, anchor="mm")
+    draw.text((540, 930), brand, fill="black", font=font_brand, anchor="mm")
 
-    img.save("btc.png")  
+    img.save("btc.png")
+
 
 async def send_update(price, percent):
     create_image(price, percent)
-    indicator = '🟢' if percent >= 0 else '🔴'
+
+    indicator = "🟢" if percent >= 0 else "🔴"
     caption = (
-    f"{indicator} *BTC ${int(price):,}* @The_deal_chamber\n"
-    f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h"
+        f"{indicator} *BTC ${int(price):,}* @The_deal_chamber\n"
+        f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h"
     )
+
     with open("btc.png", "rb") as photo:
         await bot.send_photo(
             chat_id=CHANNEL_USERNAME,
@@ -72,51 +85,49 @@ async def send_update(price, percent):
             caption=caption,
             parse_mode="Markdown"
         )
+
     print(f"✅ Sent update: BTC ${price:,.2f} ({percent:+.2f}%)")
+
 
 async def main():
     global LAST_PRICE, LAST_MILESTONE
     print("🤖 Bitcoin monitor started...")
-    
+
     while True:
         try:
             price, percent = get_btc_price()
 
             if LAST_PRICE is None:
                 LAST_PRICE = price
-                # Calculate initial milestone (round down to nearest 500)
                 LAST_MILESTONE = int(price / 500) * 500
-                print(f"✅ Initial price: ${price:,.2f} | Milestone: ${LAST_MILESTONE:,}")
+                print(
+                    f"✅ Initial price: ${price:,.2f} | "
+                    f"Milestone: ${LAST_MILESTONE:,}"
+                )
 
-            # Calculate current milestone (every $500: 88500, 89000, etc.)
             current_milestone = int(price / 500) * 500
-            
-            # Send update if we've reached a new milestone
-            if current_milestone > LAST_MILESTONE:  # Price moved UP to new milestone
-                print(f"🎯 New milestone UP! ${LAST_MILESTONE:,.2f} → ${current_milestone:,.2f}")
-                await send_update(price, percent)
-                LAST_MILESTONE = current_milestone
-            elif current_milestone < LAST_MILESTONE:  # Price moved DOWN to new milestone
-                print(f"🎯 New milestone DOWN! ${LAST_MILESTONE:,.2f} → ${current_milestone:,.2f}")
+
+            if current_milestone != LAST_MILESTONE:
+                direction = "UP" if current_milestone > LAST_MILESTONE else "DOWN"
+                print(
+                    f"🎯 New milestone {direction}! "
+                    f"${LAST_MILESTONE:,} → ${current_milestone:,}"
+                )
                 await send_update(price, percent)
                 LAST_MILESTONE = current_milestone
             else:
-                next_up = LAST_MILESTONE + 500
-                next_down = LAST_MILESTONE - 500
-                if price >= LAST_MILESTONE:
-                    distance = next_up - price
-                    print(f"Current: ${price:,.2f} | 24h: {percent:+.2f}% | Next UP: ${next_up:,.2f} (${distance:+,.2f})")
-                else:
-                    distance = price - next_down
-                    print(f"Current: ${price:,.2f} | 24h: {percent:+.2f}% | Next DOWN: ${next_down:,.2f} (${distance:+,.2f})")
+                print(
+                    f"Current: ${price:,.2f} | "
+                    f"24h: {percent:+.2f}% | "
+                    f"Milestone: ${LAST_MILESTONE:,}"
+                )
 
             await asyncio.sleep(60)
 
         except Exception as e:
-            print(f"❌ Error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            print(f"❌ Error: {e}")
             await asyncio.sleep(60)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
