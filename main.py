@@ -29,44 +29,28 @@ def get_btc_price():
     
     return price, change_percent
 def create_image(price, percent):
-        img = Image.new("RGB", (1080, 1080), "#F7931A")
-        draw = ImageDraw.Draw(img)
+    img = Image.new("RGB", (1080, 1080), "#F7931A")
+    draw = ImageDraw.Draw(img)
 
-        font_big = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-        font_brand = ImageFont.load_default()
+    font_big = ImageFont.load_default()
+    font_small = ImageFont.load_default()
+    font_brand = ImageFont.load_default()
 
-        price_text = f"${int(price):,}"
-        percent_text = f"{percent:+.2f}%"
-        brand = "@the_deal_chamber"
+    price_text = f"${int(price):,}"
+    percent_text = f"{percent:+.2f}%"
+    brand = "@the_deal_chamber"
 
-        draw.text((540, 350), price_text, font=font_big, fill="black", anchor="mm")
+    draw.text((540, 350), price_text, font=font_big, fill="black", anchor="mm")
+    draw.text(
+        (540, 550),
+        percent_text,
+        font=font_small,
+        fill="green" if percent >= 0 else "red",
+        anchor="mm"
+    )
+    draw.text((540, 900), brand, font=font_brand, fill="black", anchor="mm")
 
-        draw.text(
-            (540, 550),
-            percent_text,
-            font=font_small,
-            fill="green" if percent >= 0 else "red",
-            anchor="mm"
-        )
-
-        draw.text(
-    (540, 350),
-    price_text,
-    font=font_big,
-    fill="black",
-    anchor="mm"
-)
-
-draw.text(
-    (540, 900),
-    brand,
-    font=font_brand,
-    fill="black",
-    anchor="mm"
-)
-
-        img.save("btc.png")  
+    img.save("btc.png")  # ✅ SAME INDENT LEVEL  
 
 async def send_update(price, percent):
     create_image(price, percent)
