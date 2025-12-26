@@ -62,7 +62,7 @@ async def send_update(price, percent):
     create_image(price, percent)
     indicator = '🟢' if percent >= 0 else '🔴'
     caption = (
-    f"{indicator} *BTC ${int(price):,}* @the_deal_chamber\n"
+    f"{indicator} *BTC ${int(price):,}* @The_deal_chamber\n"
     f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h"
     )
     with open("btc.png", "rb") as photo:
