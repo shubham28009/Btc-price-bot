@@ -28,33 +28,31 @@ def get_btc_price():
         raise Exception("Invalid price data from API")
     
     return price, change_percent
-
 def create_image(price, percent):
-img = Image.new("RGB", (1080, 1080), "#F7931A")
-draw = ImageDraw.Draw(img)
+        img = Image.new("RGB", (1080, 1080), "#F7931A")
+        draw = ImageDraw.Draw(img)
 
-font_big = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 160)
-font_small = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 90)
-font_brand = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 60)
-    
-    price_text = f"${int(price):}"
-draw.text((540, 350), price_text, font=font_big, fill="black", anchor="mm")
-percent_text = f"{percent:+.2f}%"
-brand = "@the_deal_chamber"
+        font_big = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 160)
+        font_small = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 90)
+        font_brand = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 60)
 
- # Draw percentage text
-    draw.text(
-    (540, 550),
-    percent_text,
-    font=font_small,
-    fill="green" if percent >= 0 else "red",
-    anchor="mm"
-    )
-    
-    # Draw channel name in beige/cream color at bottom
-    draw.text((540, 900), brand, font=font_brand, fill="#E8D4A8", anchor="mm")
+        price_text = f"${int(price):,}"
+        percent_text = f"{percent:+.2f}%"
+        brand = "@the_deal_chamber"
 
-    img.save("btc.png")
+        draw.text((540, 350), price_text, font=font_big, fill="black", anchor="mm")
+
+        draw.text(
+            (540, 550),
+            percent_text,
+            font=font_small,
+            fill="green" if percent >= 0 else "red",
+            anchor="mm"
+        )
+
+        draw.text((540, 900), brand, font=font_brand, fill="#E8D4A8", anchor="mm")
+
+        img.save("btc.png")  
 
 async def send_update(price, percent):
     create_image(price, percent)
