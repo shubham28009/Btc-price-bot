@@ -50,7 +50,21 @@ def create_image(price, percent):
             anchor="mm"
         )
 
-        draw.text((540, 900), brand, font=font_brand, fill="#E8D4A8", anchor="mm")
+        draw.text(
+    (540, 350),
+    price_text,
+    font=font_big,
+    fill="black",
+    anchor="mm"
+)
+
+draw.text(
+    (540, 900),
+    brand,
+    font=font_brand,
+    fill="black",
+    anchor="mm"
+)
 
         img.save("btc.png")  
 
