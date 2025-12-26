@@ -30,42 +30,26 @@ def get_btc_price():
     return price, change_percent
 
 def create_image(price, percent):
-    img = Image.new("RGB", (1080, 1080), "#F7931A")
-    draw = ImageDraw.Draw(img)
+img = Image.new("RGB", (1080, 1080), "#F7931A")
+draw = ImageDraw.Draw(img)
 
-    # Load fonts
-    font_big = None
-    font_small = None
-    font_brand = None
+font_big = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 160)
+font_small = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 90)
+font_brand = ImageFont.truetype("fonts/DejaVuSans-Bold.ttf", 60)
     
-    font_paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    ]
-    
-    for path in font_paths:
-        try:
-            font_big = ImageFont.truetype(path, 200)
-            font_small = ImageFont.truetype(path, 130)
-            font_brand = ImageFont.truetype(path, 70)
-            break
-        except:
-            continue
-    
-    if font_big is None:
-        font_big = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-        font_brand = ImageFont.load_default()
+    price_text = f"${int(price):}"
+draw.text((540, 350), price_text, font=font_big, fill="black", anchor="mm")
+percent_text = f"{percent:+.2f}%"
+brand = "@the_deal_chamber"
 
-    price_text = f"${int(price):,}"
-    percent_text = f"{percent:+.2f}%"
-    brand = "@the_deal_chamber"
-
-    # Draw small price text at upper part
-    draw.text((540, 280), price_text, font=font_big, fill="black", anchor="mm")
-    
-    # Draw larger percentage text
-    draw.text((540, 550), percent_text, font=font_small, fill="black", anchor="mm")
+ # Draw percentage text
+    draw.text(
+    (540, 550),
+    percent_text,
+    font=font_small,
+    fill="green" if percent >= 0 else "red",
+    anchor="mm"
+    )
     
     # Draw channel name in beige/cream color at bottom
     draw.text((540, 900), brand, font=font_brand, fill="#E8D4A8", anchor="mm")
@@ -75,7 +59,10 @@ def create_image(price, percent):
 async def send_update(price, percent):
     create_image(price, percent)
     indicator = '🟢' if percent >= 0 else '🔴'
-    caption = f"{indicator} *BTC ${int(price):,}* *@the_deal_chamber*\n*💹 {percent:+.2f}%* in 24h"
+    caption = (
+    f"{indicator} *BTC ${int(price):,}* @the_deal_chamber\n"
+    f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h"
+    )
     with open("btc.png", "rb") as photo:
         await bot.send_photo(
             chat_id=CHANNEL_USERNAME,
