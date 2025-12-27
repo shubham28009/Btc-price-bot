@@ -54,7 +54,7 @@ def create_image(price, percent):
 
     price_text = f"${int(price):,}"
     percent_text = f"{percent:+.2f}%"
-    brand = "@thedealchamber"
+    brand = "@The_deal_chamber"
 
     draw.text((540, 360), price_text, fill="black", font=font_big, anchor="mm")
     draw.text(
