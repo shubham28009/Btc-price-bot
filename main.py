@@ -70,7 +70,7 @@ async def send_update():
 
     photo_buffer = create_image(price, percent)
     indicator = "🟢" if percent >= 0 else "🔴"
-    caption = f"{indicator} *BTC ${int(price):,}*\n{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h\n📢 {CHANNEL_USERNAME}"
+    caption = f"{indicator} *BTC ${int(price):,}*\n{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h\n📢 {@THE_DEAL_CHAMBER}"
 
     try:
         await bot.send_photo(chat_id=CHANNEL_USERNAME, photo=photo_buffer, caption=caption, parse_mode="Markdown")
