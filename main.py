@@ -8,11 +8,12 @@ from io import BytesIO
 
 logging.basicConfig(level=logging.INFO)
 
+# Configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@THE_DEAL_CHAMBER")
 bot = Bot(token=BOT_TOKEN)
 
-# ✅ FONT DOWNLOADER: Isse font hamesha bada aayega
+# ✅ FONT DOWNLOADER
 def download_font():
     font_path = "Roboto-Bold.ttf"
     if not os.path.exists(font_path):
@@ -47,10 +48,9 @@ def create_image(price, percent):
     img = Image.new("RGB", (1080, 1080), "#F7931A")
     draw = ImageDraw.Draw(img)
     
-    # Sizes badha diye gaye hain
-    font_big = get_font(240)    # Price (Aur bada kiya)
-    font_small = get_font(130)  # Percentage
-    font_brand = get_font(60)   # Username
+    font_big = get_font(240)    
+    font_small = get_font(130)  
+    font_brand = get_font(60)   
 
     price_text = f"${int(price):,}"
     percent_text = f"{percent:+.2f}%"
@@ -70,10 +70,22 @@ async def send_update():
 
     photo_buffer = create_image(price, percent)
     indicator = "🟢" if percent >= 0 else "🔴"
-    caption = f"{indicator} *BTC ${int(price):,}*\n{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h\n📢 {CHANNEL_USERNAME}"
+    
+    # ✅ FIX: Using HTML tags instead of Markdown to preserve underscores and case
+    caption = (
+        f"{indicator} <b>BTC ${int(price):,}</b>\n"
+        f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h\n"
+        f"📢 {CHANNEL_USERNAME}"
+    )
 
     try:
-        await bot.send_photo(chat_id=CHANNEL_USERNAME, photo=photo_buffer, caption=caption, parse_mode="Markdown")
+        # ✅ FIX: Changed parse_mode to HTML
+        await bot.send_photo(
+            chat_id=CHANNEL_USERNAME, 
+            photo=photo_buffer, 
+            caption=caption, 
+            parse_mode="HTML"
+        )
         logging.info(f"Update sent: {price}")
     except Exception as e:
         logging.error(f"Send error: {e}")
@@ -82,7 +94,9 @@ async def main():
     logging.info("Bot is starting...")
     while True:
         await send_update()
+        # Updates every 1 hour
         await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
