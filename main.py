@@ -9,11 +9,14 @@ from io import BytesIO
 logging.basicConfig(level=logging.INFO)
 
 # Configuration
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# ✅ BOT TOKEN UPDATED
+BOT_TOKEN = "8586949573:AAHj1mww960J_3r54nuvXINCBzR0WDV8CGI"
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@THE_DEAL_CHAMBER")
-bot = Bot(token=8586949573:AAHj1mww960J_3r54nuvXINCBzR0WDV8CGI)
+bot = Bot(token=BOT_TOKEN)
 
-# ✅ FONT DOWNLOADER
+# Threshold for updates
+STEP = 500 
+
 def download_font():
     font_path = "Roboto-Bold.ttf"
     if not os.path.exists(font_path):
@@ -30,7 +33,7 @@ def get_font(size):
         path = download_font()
         return ImageFont.truetype(path, size)
     except Exception as e:
-        logging.warning(f"Font error: {e}. Default use ho raha hai.")
+        logging.warning(f"Font error: {e}. Defaulting.")
         return ImageFont.load_default()
 
 def get_btc_price():
@@ -41,11 +44,13 @@ def get_btc_price():
         bitcoin_data = data["bitcoin"]
         return float(bitcoin_data["usd"]), float(bitcoin_data["usd_24h_change"])
     except Exception as e:
-        logging.error(f"Price error: {e}")
+        logging.error(f"Price fetch error: {e}")
         return None, None
 
 def create_image(price, percent):
-    img = Image.new("RGB", (1080, 1080), "#F7931A")
+    # Dynamic background: Green for up, Red for down
+    bg_color = "#008000" if percent >= 0 else "#8B0000"
+    img = Image.new("RGB", (1080, 1080), bg_color)
     draw = ImageDraw.Draw(img)
     
     font_big = get_font(240)    
@@ -55,47 +60,64 @@ def create_image(price, percent):
     price_text = f"${int(price):,}"
     percent_text = f"{percent:+.2f}%"
 
-    draw.text((540, 420), price_text, fill="black", font=font_big, anchor="mm")
-    draw.text((540, 620), percent_text, fill="#004d00" if percent >= 0 else "#8b0000", font=font_small, anchor="mm")
-    draw.text((540, 950), CHANNEL_USERNAME, fill="white", font=font_brand, anchor="mm")
+    draw.text((540, 420), price_text, fill="white", font=font_big, anchor="mm")
+    draw.text((540, 620), percent_text, fill="white", font=font_small, anchor="mm")
+    draw.text((540, 950), CHANNEL_USERNAME, fill="rgba(255,255,255,128)", font=font_brand, anchor="mm")
     
     bio = BytesIO()
     img.save(bio, 'PNG')
     bio.seek(0)
     return bio
 
-async def send_update():
-    price, percent = get_btc_price()
-    if price is None: return
-
+async def send_update(price, percent):
     photo_buffer = create_image(price, percent)
     indicator = "🟢" if percent >= 0 else "🔴"
     
-    # ✅ FIX: Using HTML tags instead of Markdown to preserve underscores and case
     caption = (
-        f"{indicator} <b>BTC ${int(price):,}</b>\n"
+        f"{indicator} <b>BTC ALERT: ${int(price):,}</b>\n"
         f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h\n"
         f"📢 {CHANNEL_USERNAME}"
     )
 
     try:
-        # ✅ FIX: Changed parse_mode to HTML
         await bot.send_photo(
             chat_id=CHANNEL_USERNAME, 
             photo=photo_buffer, 
             caption=caption, 
             parse_mode="HTML"
         )
-        logging.info(f"Update sent: {price}")
+        logging.info(f"✅ Alert Sent at ${price}")
     except Exception as e:
-        logging.error(f"Send error: {e}")
+        logging.error(f"Telegram Send Error: {e}")
 
 async def main():
-    logging.info("Bot is starting...")
+    logging.info("🚀 BTC Tracker Bot Started...")
+    
+    # Initialize with current milestone
+    price, _ = get_btc_price()
+    if price:
+        last_milestone = (int(price) // STEP) * STEP
+        logging.info(f"Initial milestone set at: {last_milestone}")
+    else:
+        last_milestone = 0
+
     while True:
-        await send_update()
-        # Updates every 1 hour
-        await asyncio.sleep(3600)
+        current_price, percent = get_btc_price()
+        
+        if current_price:
+            # Calculate current milestone (e.g., 75200 becomes 75000)
+            current_milestone = (int(current_price) // STEP) * STEP
+            
+            # If the milestone has changed (moved up or down by 500)
+            if current_milestone != last_milestone:
+                logging.info(f"Price crossed milestone: {current_milestone}")
+                await send_update(current_price, percent)
+                last_milestone = current_milestone
+            else:
+                logging.info(f"Price: {current_price} (Waiting for next {STEP} point move)")
+
+        # Check every 30 seconds to catch fast moves
+        await asyncio.sleep(30)
 
 if __name__ == "__main__":
     asyncio.run(main())
