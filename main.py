@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 # Configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@THE_DEAL_CHAMBER")
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(token=8586949573:AAHj1mww960J_3r54nuvXINCBzR0WDV8CGI)
 
 # ✅ FONT DOWNLOADER
 def download_font():
