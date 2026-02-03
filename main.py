@@ -9,73 +9,92 @@ from io import BytesIO
 logging.basicConfig(level=logging.INFO)
 
 # Configuration
-# ✅ BOT TOKEN UPDATED
 BOT_TOKEN = "8586949573:AAHj1mww960J_3r54nuvXINCBzR0WDV8CGI"
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@THE_DEAL_CHAMBER")
 bot = Bot(token=BOT_TOKEN)
 
-# Threshold for updates
+# Threshold for updates (500 points)
 STEP = 500 
 
 def download_font():
     font_path = "Roboto-Bold.ttf"
     if not os.path.exists(font_path):
-        logging.info("📥 Font downloading...")
         url = "https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf"
         r = requests.get(url)
         with open(font_path, "wb") as f:
             f.write(r.content)
-        logging.info("✅ Font downloaded!")
     return font_path
 
 def get_font(size):
     try:
         path = download_font()
         return ImageFont.truetype(path, size)
-    except Exception as e:
-        logging.warning(f"Font error: {e}. Defaulting.")
+    except:
         return ImageFont.load_default()
 
-def get_btc_price():
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
+def get_btc_data():
+    # Fetching price, 24h change, high, and low
+    url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin"
     try:
         response = requests.get(url, timeout=15)
-        data = response.json()
-        bitcoin_data = data["bitcoin"]
-        return float(bitcoin_data["usd"]), float(bitcoin_data["usd_24h_change"])
+        data = response.json()[0]
+        return {
+            "price": float(data["current_price"]),
+            "percent": float(data["price_change_percentage_24h"]),
+            "high": float(data["high_24h"]),
+            "low": float(data["low_24h"])
+        }
     except Exception as e:
-        logging.error(f"Price fetch error: {e}")
-        return None, None
+        logging.error(f"Data fetch error: {e}")
+        return None
 
-def create_image(price, percent):
-    # Dynamic background: Green for up, Red for down
-    bg_color = "#008000" if percent >= 0 else "#8B0000"
-    img = Image.new("RGB", (1080, 1080), bg_color)
+def create_image(data):
+    # Setup Canvas (Orange Background)
+    orange_color = "#F7931A"
+    img = Image.new("RGB", (1080, 1080), orange_color)
     draw = ImageDraw.Draw(img)
     
-    font_big = get_font(240)    
-    font_small = get_font(130)  
-    font_brand = get_font(60)   
+    # Fonts
+    font_main = get_font(250)    # Big Price
+    font_sub = get_font(100)     # Percent
+    font_info = get_font(60)     # High/Low
+    font_brand = get_font(50)    # Channel Name
 
-    price_text = f"${int(price):,}"
-    percent_text = f"{percent:+.2f}%"
+    # Text Content
+    price_text = f"${int(data['price']):,}"
+    percent_text = f"{data['percent']:+.2f}%"
+    hl_text = f"24h High: ${int(data['high']):,}  |  24h Low: ${int(data['low']):,}"
 
-    draw.text((540, 420), price_text, fill="white", font=font_big, anchor="mm")
-    draw.text((540, 620), percent_text, fill="white", font=font_small, anchor="mm")
-    draw.text((540, 950), CHANNEL_USERNAME, fill="rgba(255,255,255,128)", font=font_brand, anchor="mm")
+    # Draw Elements (All White Text)
+    # Price
+    draw.text((540, 400), price_text, fill="white", font=font_main, anchor="mm")
+    
+    # Percentage (with a slight background pill for beauty)
+    draw.rounded_rectangle([340, 520, 740, 640], radius=50, fill="#E88300")
+    draw.text((540, 580), percent_text, fill="white", font=font_sub, anchor="mm")
+    
+    # High/Low Info
+    draw.text((540, 750), hl_text, fill="white", font=font_info, anchor="mm")
+    
+    # Branding
+    draw.text((540, 980), CHANNEL_USERNAME.upper(), fill="rgba(255,255,255,180)", font=font_brand, anchor="mm")
     
     bio = BytesIO()
     img.save(bio, 'PNG')
     bio.seek(0)
     return bio
 
-async def send_update(price, percent):
-    photo_buffer = create_image(price, percent)
-    indicator = "🟢" if percent >= 0 else "🔴"
+async def send_update(data):
+    photo_buffer = create_image(data)
     
+    # Formatting the caption nicely
+    status = "🚀 MOONING" if data['percent'] > 0 else "📉 DIPPING"
     caption = (
-        f"{indicator} <b>BTC ALERT: ${int(price):,}</b>\n"
-        f"{'📈' if percent >= 0 else '📉'} {percent:+.2f}% in 24h\n"
+        f"<b>BTC {status}</b>\n\n"
+        f"💰 <b>Price:</b> ${int(data['price']):,}\n"
+        f"📊 <b>24h Change:</b> {data['percent']:+.2f}%\n"
+        f"🔼 <b>24h High:</b> ${int(data['high']):,}\n"
+        f"🔽 <b>24h Low:</b> ${int(data['low']):,}\n\n"
         f"📢 {CHANNEL_USERNAME}"
     )
 
@@ -86,38 +105,32 @@ async def send_update(price, percent):
             caption=caption, 
             parse_mode="HTML"
         )
-        logging.info(f"✅ Alert Sent at ${price}")
+        logging.info(f"✅ Beauty Update Sent: {data['price']}")
     except Exception as e:
-        logging.error(f"Telegram Send Error: {e}")
+        logging.error(f"Telegram Error: {e}")
 
 async def main():
-    logging.info("🚀 BTC Tracker Bot Started...")
+    logging.info("🚀 BTC Beauty Tracker Started...")
     
-    # Initialize with current milestone
-    price, _ = get_btc_price()
-    if price:
-        last_milestone = (int(price) // STEP) * STEP
-        logging.info(f"Initial milestone set at: {last_milestone}")
-    else:
-        last_milestone = 0
+    last_milestone = None
 
     while True:
-        current_price, percent = get_btc_price()
+        data = get_btc_data()
         
-        if current_price:
-            # Calculate current milestone (e.g., 75200 becomes 75000)
+        if data:
+            current_price = data['price']
             current_milestone = (int(current_price) // STEP) * STEP
             
-            # If the milestone has changed (moved up or down by 500)
-            if current_milestone != last_milestone:
-                logging.info(f"Price crossed milestone: {current_milestone}")
-                await send_update(current_price, percent)
+            # Send if it's the first run OR price moved 500 points
+            if last_milestone is None or current_milestone != last_milestone:
+                logging.info(f"Triggering update for milestone: {current_milestone}")
+                await send_update(data)
                 last_milestone = current_milestone
             else:
-                logging.info(f"Price: {current_price} (Waiting for next {STEP} point move)")
+                logging.info(f"Price at {current_price}, no 500pt move yet.")
 
-        # Check every 30 seconds to catch fast moves
-        await asyncio.sleep(30)
+        # Check every 45 seconds
+        await asyncio.sleep(45)
 
 if __name__ == "__main__":
     asyncio.run(main())
